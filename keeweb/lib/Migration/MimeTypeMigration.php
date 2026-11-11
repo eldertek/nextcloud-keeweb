@@ -1,20 +1,24 @@
 <?php
+declare(strict_types=1);
 
 namespace OCA\Keeweb\Migration;
 
 use OCP\Files\IMimeTypeLoader;
 use OCP\Migration\IRepairStep;
 
-abstract class MimeTypeMigration implements IRepairStep
-{
-    const CUSTOM_MIMETYPEMAPPING = 'mimetypemapping.json';
-    const CUSTOM_MIMETYPEALIASES = 'mimetypealiases.json';
+abstract class MimeTypeMigration implements IRepairStep {
+    public const CUSTOM_MIMETYPEMAPPING = 'mimetypemapping.json';
+    public const CUSTOM_MIMETYPEALIASES = 'mimetypealiases.json';
 
-    protected $mimeTypeLoader;
-    protected $updateJS;
+    public function __construct(
+        protected IMimeTypeLoader $mimeTypeLoader,
+    ) {
+    }
 
-    public function __construct(IMimeTypeLoader $mimeTypeLoader)
-    {
-        $this->mimeTypeLoader = $mimeTypeLoader;
+    protected function resolveConfigDir(): ?string {
+        if (isset(\OC::$configDir) && is_string(\OC::$configDir) && \OC::$configDir !== '') {
+            return rtrim(\OC::$configDir, '/\\') . DIRECTORY_SEPARATOR;
+        }
+        return null;
     }
 }

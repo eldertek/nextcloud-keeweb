@@ -1,78 +1,70 @@
 # Keeweb for Nextcloud
 
-**WARNING: KeeWeb itself is not maintained any longer (see note about NC 28 and newer below) and future versions of Nextcloud may not be supported any longer!**
+Open, search, create, and edit encrypted KeePass password databases (`.kdbx`) directly inside [Nextcloud](https://nextcloud.com/), with 100% client-side encryption and decryption in your browser.
 
-**Clarification about the KeeWeb upstream for August 2026: eventhough there was some activity in the upstream project, the issue
-https://github.com/keeweb/keeweb/issues/2022 is still not closed and there is also no new release of KeeWeb yet
-(see https://github.com/keeweb/keeweb/releases).**
+Compatible with **Nextcloud 28 through 35** and **PHP 8.1+**.
 
-**Also keep in mind that KeeWeb only supports files in KDBX 3 format. Files in KDBX 4 format will get corrupted when opening and editing them in KeeWeb,
-see [https://github.com/keeweb/keeweb/issues/2001](https://github.com/keeweb/keeweb/issues/2001)! So keep your files in KDBX 3 format if you want to
-use them in KeeWeb as well!**
+## Highlights in v0.7.0
 
-**Since the situation did not change in October 2026, this application is considered obsolete and will no longer be maintained and there will not be any updates for Nextcloud 35 or newer since no one is maintaining the upstream application. Also see the announcement at [https://help.nextcloud.com/t/future-of-keeweb-for-nextcloud/246223](https://help.nextcloud.com/t/future-of-keeweb-for-nextcloud/246223).**
+- **Native KDBX 3.1 and KDBX 4.0 / 4.1 support**: Powered directly by [`kdbxweb`](https://github.com/keeweb/kdbxweb) v2.1+ with WebAssembly Argon2d / Argon2id (`hash-wasm`) and pure-JS fallback (`@noble/hashes`), eliminating the KDBX 4 corruption bug of the legacy static KeeWeb bundle.
+- **Zero-knowledge client-side cryptography**: Master passwords, key files, and decrypted entries never leave your browser. Nextcloud only stores and transfers encrypted `.kdbx` binaries.
+- **Strict Content Security Policy (CSP)**: Runs natively inside Nextcloud without `<iframe>`, `unsafe-inline` scripts, `unsafe-eval`, `appcache`, or external requests to third-party servers. Argon2 key derivation runs in a same-origin Web Worker (`worker-src 'self'`, `wasm-unsafe-eval`).
+- **Complete vault workflow**:
+  - Unlock with master password, key file (uploaded locally or selected from Nextcloud Files), or both.
+  - Create brand-new **KDBX 4.1 (Argon2id)** or **KDBX 3.1 (AES-KDF)** vaults directly in Nextcloud.
+  - Browse nested groups, filter instantaneously across titles, usernames, URLs, tags, custom fields, and notes.
+  - Masked passwords by default with one-click copy, CSPRNG password generator, custom protected fields, binary attachment downloads, and built-in **RFC 6238 TOTP (2FA)** live codes.
+- **Safe concurrent storage & sharing**:
+  - Atomic VFS persistence with **ETag (`If-Match`) concurrency verification** so concurrent edits from desktop/mobile WebDAV clients (KeePassXC, KeePassDX, Keepass2Android) are never silently overwritten.
+  - Automatic **Read-only mode** when opening a `.kdbx` vault from a read-only share or external mount.
+- **Nextcloud Files integration**: Registers `application/x-kdbx` and opens `.kdbx` files on direct click in Nextcloud Files across Nextcloud 28 to 35, adapting automatically to Nextcloud Light, Dark, and Breeze Dark themes.
 
-----
+## Installation
 
-[Nextcloud](https://nextcloud.com/) is an open source, self-hosted file sync and share and communication app platform.
-[Keeweb](https://keeweb.info/) is a web application for working with databases of the Keepass password manager.
+### From a release archive
 
-This integrates the two with each other. Just click on a \*.kdbx file in Your Nextcloud to open it.
+1. Download `keeweb-0.7.0.tar.gz` from the Releases page.
+2. Extract it into your Nextcloud `custom_apps` directory:
+   ```bash
+   tar xzf keeweb-0.7.0.tar.gz -C /path/to/nextcloud/custom_apps
+   ```
+3. Enable the app via `occ` or the Nextcloud Apps administration screen:
+   ```bash
+   php occ app:enable keeweb
+   ```
 
-![demo](https://arnowelzel.de/download/nextcloud-keeweb.gif)
+## Development & Building from Source
 
-**Note about Nextcloud 28 and newer:**
+Requirements: Node.js 20+ and npm 9+.
 
-Thanks to the help by @florian-forestier, in January 2024 a new release was published which supports Nextcloud 28.
+```bash
+git clone https://github.com/eldertek/nextcloud-keeweb.git
+cd nextcloud-keeweb/keeweb
 
-However as of July 2024 the upstream project "KeeWeb" did not get any official new release since
-July 2021 (also see https://github.com/keeweb/keeweb/releases).
+# Install dependencies
+npm ci
 
-You may have a look at https://github.com/jhass/nextcloud-keeweb/issues/204 (KeeWeb upstream maintenance) and/or
-https://github.com/jhass/nextcloud-keeweb/issues/221 (Maintainers for KeeWeb for Nextcloud).
+# Run the automated KDBX 3.1 / KDBX 4.1 Argon2 + TOTP test suite
+npm test
 
-Any help is appreciated!
+# Compile production bundles (js/main.js, js/viewer.js, js/argon2-worker.js)
+npm run build
 
-## Install
-
-1. Go to the releases page, download the latest version.
-1. Extract it to `your_nextcloud/custom_apps`, for example with `tar xvf keeweb-0.6.29.tar.gz -C /path/to/your/nextcloud/custom_apps`.
-1. Go to "Apps" and then "Not enabled", scroll down to "Experimental" and enable it.
-
-To update to a new version, simply repeat these steps.
-
-## Development setup
-
-```
-git clone https://github.com/jhass/nextcloud-keeweb.git
-cd nextcloud-keeweb
-
-# You can skip this if you only want to build the appstore or source packages
-git clone -b stable20 https://github.com/nextcloud/server.git nextcloud
-ln -sf "$(pwd)/keeweb" nextcloud/apps
-cd nextcloud && git submodule update --init && cd -
-
-git clone https://github.com/keeweb/keeweb.git keeweb-source
-
-# Install npm -- this might require a more recent npm than your distro's, see https://github.com/nodesource/distributions on how to deploy it
-# Once npm is installed, install grunt and bower; instead of relying on your distro's, you can do
-sudo npm install -g grunt
-
-# Build nextcloud-keeweb - this will build with the current tested release
-# If you want to update to a newer version of Keeweb or use the development version, you also need to modify the patches for it
-bin/build
-
-# Finally, run the nextcloud server
-bin/server
-# Alternatively, you can build the app package to test on a running nextcloud by doing
-cd keeweb
-make dist
-# The package that can be installed in the nextcloud app folder is here: ./build/artifacts/appstore/keeweb.tar.gz
+# Build the Nextcloud App Store archive in build/artifacts/appstore/keeweb.tar.gz
+make appstore
 ```
 
-## Contributing
+To run the full end-to-end HTTP + WebDAV + CSP + ETag verification suite against a running Nextcloud instance:
 
-1. Fork the repository and clone your fork.
-1. Create a new branch.
-1. Commit your patch.
-1. Push the branch and open a pull request.
+```bash
+NC_BASE_URL="http://127.0.0.1:8035" NC_USER="qa-admin" NC_PASS="your-password" node tests/e2e-nextcloud.mjs
+```
+
+## Supporting the Project
+
+- [GitHub Sponsors](https://github.com/sponsors/eldertek)
+- [Patreon](https://patreon.com/eldertek)
+
+## License
+
+Licensed under the **GNU Affero General Public License v3.0 or later** (`AGPL-3.0-or-later`). See [COPYING](COPYING) for the full license text.

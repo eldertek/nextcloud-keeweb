@@ -1,57 +1,59 @@
 <?php
+declare(strict_types=1);
 
 namespace OCA\Keeweb\Migration;
 
-require \OC::$SERVERROOT . "/3rdparty/autoload.php";
-
 use OCP\Migration\IOutput;
 
-class RegisterMimeType extends MimeTypeMigration
-{
-    public function getName()
-    {
+class RegisterMimeType extends MimeTypeMigration {
+    private const ALIASES_FILE = 'mimetypealiases.json';
+    private const MAPPING_FILE = 'mimetypemapping.json';
+
+    public function getName(): string {
         return 'Register MIME type for "application/x-kdbx"';
     }
 
-    private function registerForExistingFiles()
-    {
+    public function run(IOutput $output): void {
+        $output->info('Registering the application/x-kdbx mimetype...');
+
         $mimeTypeId = $this->mimeTypeLoader->getId('application/x-kdbx');
         $this->mimeTypeLoader->updateFilecache('kdbx', $mimeTypeId);
-    }
 
-    private function registerForNewFiles()
-    {
-        $configDir = \OC::$configDir;
-        $mimetypealiasesFile = $configDir . self::CUSTOM_MIMETYPEALIASES;
-        $mimetypemappingFile = $configDir . self::CUSTOM_MIMETYPEMAPPING;
-
-        $this->appendToFile($mimetypealiasesFile, ['application/x-kdbx' => 'kdbx']);
-        $this->appendToFile($mimetypemappingFile, ['kdbx' => ['application/x-kdbx']]);
-    }
-
-
-    public function run(IOutput $output)
-    {
-        $output->info('Registering the mimetype...');
-
-        // Register the mime type for existing files
-        $this->registerForExistingFiles();
-
-        // Register the mime type for new files
-        $this->registerForNewFiles();
-
-        $output->info('The mimetype was successfully registered.');
-    }
-
-    private function appendToFile(string $filename, array $data) {
-        $obj = [];
-        if (file_exists($filename)) {
-            $content = file_get_contents($filename);
-            $obj = json_decode($content, true);
+        $configDir = $this->resolveConfigDir();
+        if ($configDir !== null && is_dir($configDir) && is_writable($configDir)) {
+            $this->mergeJsonFile($configDir . self::ALIASES_FILE, ['application/x-kdbx' => 'kdbx']);
+            $this->mergeJsonFile($configDir . self::MAPPING_FILE, ['kdbx' => ['application/x-kdbx']]);
         }
-        foreach ($data as $key => $value) {
-            $obj[$key] = $value;
+
+        $output->info('The application/x-kdbx mimetype was registered.');
+    }
+
+    /**
+     * @param array<string, mixed> $entries
+     */
+    private function mergeJsonFile(string $filename, array $entries): void {
+        $current = [];
+        if (is_file($filename) && is_readable($filename)) {
+            $raw = file_get_contents($filename);
+            if (is_string($raw) && trim($raw) !== '') {
+                $decoded = json_decode($raw, true);
+                if (is_array($decoded)) {
+                    $current = $decoded;
+                }
+            }
         }
-        file_put_contents($filename, json_encode($obj,  JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
+
+        if (is_file($filename) && !is_writable($filename)) {
+            return;
+        }
+
+        foreach ($entries as $key => $value) {
+            $current[$key] = $value;
+        }
+
+        $encoded = json_encode($current, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        if (is_string($encoded)) {
+            file_put_contents($filename, $encoded . "\n", LOCK_EX);
+        }
     }
 }

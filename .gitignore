@@ -1,13 +1,9 @@
 .env
 nextcloud/
 ncdev/
-keeweb-source/
 keeweb/build/
-keeweb/templates/keeweb.php
-keeweb/templates/service-worker.js
-keeweb/js/viewer.js
-keeweb/js/viewer.js.map
-keeweb/js/viewer.js.LICENSE.txt
 keeweb/node_modules/
+keeweb/js/*.map
+keeweb/js/*.LICENSE.txt
 .idea/
 .DS_Store

@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * Nextcloud - keeweb
  *
@@ -6,23 +8,17 @@
  * later. See the COPYING file.
  *
  * @author Jonne Haß <me@jhass.eu>
+ * @author André Théo LAURET <andrelauret@eclipse-technology.eu>
  * @copyright Jonne Haß 2016
  */
 
-/**
- * Create your routes in here. The name is the lowercase name of the controller
- * without the controller part, the stuff after the hash is the method.
- * e.g. page#index -> OCA\Keeweb\Controller\PageController->index()
- *
- * The controller class has to be registered in the lib/AppInfo/Application.php file since
- * it's instantiated in there
- */
 return [
     'routes' => [
         ['name' => 'page#index', 'url' => '/', 'verb' => 'GET'],
-        ['name' => 'page#keeweb', 'url' => '/keeweb', 'verb' => 'GET'],
-        ['name' => 'page#manifest', 'url' => '/manifest.appcache', 'verb' => 'GET'],
-        ['name' => 'page#config', 'url' => '/config', 'verb' => 'GET'],
-        ['name' => 'page#serviceworker', 'url' => '/service-worker.js', 'verb' => 'GET']
-    ]
+        ['name' => 'vault#files', 'url' => '/api/files', 'verb' => 'GET'],
+        ['name' => 'vault#load', 'url' => '/api/vault', 'verb' => 'GET'],
+        ['name' => 'vault#save', 'url' => '/api/vault', 'verb' => 'PUT'],
+        ['name' => 'vault#update', 'url' => '/api/vault/save', 'verb' => 'POST'],
+        ['name' => 'vault#create', 'url' => '/api/vault/create', 'verb' => 'POST'],
+    ],
 ];

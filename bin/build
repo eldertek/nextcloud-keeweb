@@ -1,43 +1,9 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-realpath() {
- [[ $1 = /* ]] && echo "$1" || echo "$PWD/${1#./}"
-}
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "${ROOT_DIR}/keeweb"
 
-cd "$(dirname "$(realpath "$0")")/.."
-
-if [[ ! -d keeweb-source || ! -d keeweb-source/.git ]]; then
-  echo "keeweb-source is missing or not a git repository"
-  exit 1
-fi
-
-# This is the Git branch/tag of Keeweb
-#
-# Please keep in mind that the existing patch files may not work
-# when you update to a newer version!
-version="$(cat keeweb-version)"
-
-cd keeweb-source
-
-echo "Building version $version"
-
-git clean -xf
-git fetch
-git checkout .
-git checkout "$version"
-git symbolic-ref -q HEAD && git pull || true
-
-git apply < ../mock_codesignconfig.patch
-git apply < ../default_settings.patch
-git apply < ../updater.patch
-
-npm install
 npm ci
-
-NODE_OPTIONS=--openssl-legacy-provider npx grunt build-web-app --skip-sign --force
-cp -v dist/index.html ../keeweb/templates/keeweb.php
-cp -v dist/service-worker.js ../keeweb/templates/
-sed -i -e 's|<?|<?php echo "<?"; ?>|g' ../keeweb/templates/keeweb.php
-sed -i -e 's|><script>|><script nonce="<?php p(\OC::$server->get(\\OC\\Security\\CSP\\ContentSecurityPolicyNonceManager::class)->getNonce()); ?>">|g' ../keeweb/templates/keeweb.php
-sed -i -e 's/<meta http-equiv="Content-Security-Policy" .[^>]*>//g' ../keeweb/templates/keeweb.php
+npm run test
+npm run build

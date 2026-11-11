@@ -1,37 +1,52 @@
-# Before running this, have the changelog and keeweb-version files updated for the new version
-
 name: Release
+
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: "The version to build, tag and publish to the appstore, without any v prefix"
+        description: "Version to package and publish (without v prefix, e.g. 0.7.0)"
         required: true
-      commit_email:
-        description: "The email address used for the release commit"
-        required: true
-        default: "me+release-ci@jhass.eu"
+        type: string
+      publish_appstore:
+        description: "Publish signed archive to Nextcloud App Store (requires APPSTORE_KEY and NC_AUTH_TOKEN secrets)"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
-  release:
+  package:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Prepare Keeweb
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: keeweb/package-lock.json
+      - name: Build and test app
+        run: ./bin/build
+      - name: Package appstore tarball
+        working-directory: keeweb
         run: |
-          git clone -b "$(cat keeweb-version)" https://github.com/keeweb/keeweb.git keeweb-source
-          sudo npm install -g grunt
-      - name: Build and publish
-        run: |
-          git config --local user.email "$COMMIT_EMAIL"
-          git config --local user.name  "Github Actions Release Job"
-          git remote set-url origin "https://$GITHUB_ACTOR:$GITHUB_TOKEN@github.com/$GITHUB_REPOSITORY.git"
-          echo "$APPSTORE_KEY" > "$SIGNING_KEY"
-          bin/release "$VERSION"
+          make appstore
+          mv build/artifacts/appstore/keeweb.tar.gz "build/artifacts/appstore/keeweb-${{ inputs.version }}.tar.gz"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: keeweb-${{ inputs.version }}
+          path: keeweb/build/artifacts/appstore/keeweb-${{ inputs.version }}.tar.gz
+      - name: Publish to Nextcloud App Store
+        if: ${{ inputs.publish_appstore == true }}
         env:
-          VERSION: ${{github.event.inputs.version}}
-          COMMIT_EMAIL: ${{github.event.inputs.commit_email}}
-          APPSTORE_KEY: ${{secrets.APPSTORE_KEY}}
-          NC_AUTH_TOKEN: ${{secrets.NC_AUTH_TOKEN}}
-          SIGNING_KEY: ${{github.workspace}}/keeweb.key
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          APPSTORE_KEY: ${{ secrets.APPSTORE_KEY }}
+          NC_AUTH_TOKEN: ${{ secrets.NC_AUTH_TOKEN }}
+        run: |
+          if [ -z "$APPSTORE_KEY" ] || [ -z "$NC_AUTH_TOKEN" ]; then
+            echo "APPSTORE_KEY or NC_AUTH_TOKEN secret is not configured; skipping store upload."
+            exit 1
+          fi
+          echo "$APPSTORE_KEY" > "${RUNNER_TEMP}/keeweb.key"
+          SIGNING_KEY="${RUNNER_TEMP}/keeweb.key" ./bin/publish "v${{ inputs.version }}" "keeweb/build/artifacts/appstore/keeweb-${{ inputs.version }}.tar.gz"
+          rm -f "${RUNNER_TEMP}/keeweb.key"

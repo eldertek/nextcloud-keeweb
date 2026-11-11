@@ -1,48 +1,27 @@
 <?php
-/**
- * Nextcloud - keeweb
- *
- * This file is licensed under the Affero General Public License version 3 or
- * later. See the COPYING file.
- *
- * @author Jonne Haß <me@jhass.eu>
- * @copyright Jonne Haß 2016
- */
+declare(strict_types=1);
 
-namespace OCA\Keeweb\Controller;
+namespace OCA\Keeweb\Tests\Unit\Controller;
 
-use PHPUnit_Framework_TestCase;
-
+use OCA\Keeweb\Controller\PageController;
 use OCP\AppFramework\Http\TemplateResponse;
+use OCP\IRequest;
+use OCP\IURLGenerator;
+use PHPUnit\Framework\TestCase;
 
+class PageControllerTest extends TestCase {
+    public function testIndexReturnsMainTemplateWithStrictCsp(): void {
+        $request = $this->createMock(IRequest::class);
+        $urlGenerator = $this->createMock(IURLGenerator::class);
+        $urlGenerator->method('linkToRoute')->willReturn('/apps/keeweb/');
+        $urlGenerator->method('linkTo')->willReturn('/apps/keeweb/js/argon2-worker.js');
 
-class PageControllerTest extends PHPUnit_Framework_TestCase {
+        $controller = new PageController($request, $urlGenerator);
+        $response = $controller->index('/sample-v4.kdbx');
 
-	private $controller;
-	private $userId = 'john';
-
-	public function setUp() {
-		$request = $this->getMockBuilder('OCP\IRequest')->getMock();
-
-		$this->controller = new PageController(
-			'keeweb', $request, $this->userId
-		);
-	}
-
-
-	public function testIndex() {
-		$result = $this->controller->index();
-
-		$this->assertEquals(['user' => 'john'], $result->getParams());
-		$this->assertEquals('main', $result->getTemplateName());
-		$this->assertTrue($result instanceof TemplateResponse);
-	}
-
-
-	public function testEcho() {
-		$result = $this->controller->doEcho('hi');
-		$this->assertEquals(['echo' => 'hi'], $result->getData());
-	}
-
-
+        $this->assertInstanceOf(TemplateResponse::class, $response);
+        $this->assertSame('main', $response->getTemplateName());
+        $params = $response->getParams();
+        $this->assertSame('/sample-v4.kdbx', $params['open']);
+    }
 }

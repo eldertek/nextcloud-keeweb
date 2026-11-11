@@ -1,3 +1,13 @@
+nextcloud-keeweb (0.7.0)
+* Replaced the unmaintained legacy static KeeWeb bundle with a native Nextcloud Vue 3 + kdbxweb v2.1+ client-side vault application.
+* Added full KDBX 4.0 and KDBX 4.1 support (Argon2d and Argon2id via WebAssembly hash-wasm in a dedicated Web Worker with @noble/hashes fallback, ChaCha20 and AES-256) alongside KDBX 3.1 (AES-KDF), preventing KDBX 4 file corruption.
+* Added support for Nextcloud 28 through 35 (`min-version="28"`, `max-version="35"`, PHP 8.1+).
+* Replaced legacy iframe / appcache / inline-script architecture with a strict Nextcloud ContentSecurityPolicy (`worker-src 'self'`, `wasm-unsafe-eval`, no `unsafe-inline` or `unsafe-eval` in `script-src`, zero external calls).
+* Added dedicated `VaultController` using Nextcloud VFS (`IRootFolder`) with atomic saves, `If-Match` ETag concurrency checks (`409 Conflict` protection), KDBX header validation, vault creation (`POST /api/vault/create`), Nextcloud keyfile picker, and automatic read-only mode on read-only shares.
+* Added built-in RFC 6238 TOTP code generator supporting `otpauth://` URIs, KeePass `TimeOtp-*` fields, and unpadded Base32 secrets.
+* Fixed `RegisterMimeType` / `UnregisterMimeType` repair steps for Nextcloud 28+ upgrades and improved `.kdbx` click action in Nextcloud Files.
+* Updated license identifier to `AGPL-3.0-or-later` and removed deprecation notice.
+
 nextcloud-keeweb (0.6.29)
 * Updated application information to clarify that this app will not be continued.
 
@@ -22,7 +32,7 @@ nextcloud-keeweb (0.6.23)
 * Migrated `AppInfo\Application` to the `IBootstrap` pattern required by NC 30+.
 * Replaced `@NoAdminRequired` / `@NoCSRFRequired` doc annotations with PHP 8 attributes.
 * Modernised `PageController` dependency injection (constructor property promotion, removed `\OC::$server` access, injected `CsrfTokenManager`).
-* Rebuilt the file action against `@nextcloud/files` v4 — required by NC 33's new pinia/event-bus registry; the v3 build registered into a global key NC 33 ignores, which made `.kdbx` files fall through to download instead of opening in KeeWeb.
+* Rebuilt the file action against `@nextcloud/files` v4, required by NC 33's new pinia/event-bus registry; the v3 build registered into a global key NC 33 ignores, which made `.kdbx` files fall through to download instead of opening in KeeWeb.
 * Fixed operator-precedence bug in the file-action `enabled()` permission check.
 * Closed `<iframe>` tag explicitly in `templates/main.php` (HTML5 compliance).
 * Raised `php min-version` to 8.1.
