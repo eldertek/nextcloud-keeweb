@@ -68,3 +68,8 @@ NC_BASE_URL="http://127.0.0.1:8035" NC_USER="qa-admin" NC_PASS="your-password" n
 ## License
 
 Licensed under the **GNU Affero General Public License v3.0 or later** (`AGPL-3.0-or-later`). See [COPYING](COPYING) for the full license text.
+
+## Commercial Support & Custom Integration
+
+Need custom features, enterprise integration, or priority support?
+Maintained by **[Eclipse Technology](https://eclipse-technology.eu)** ([contact@eclipse-technology.eu](mailto:contact@eclipse-technology.eu)).
